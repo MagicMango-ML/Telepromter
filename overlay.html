@@ -3,19 +3,21 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Teleprompter · Camera mode</title>
+<title>Teleprompter · See-through</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; background: #000; color: #fff;
+  html, body { margin: 0; height: 100%; background: transparent; color: #fff;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
   body { display: flex; flex-direction: column; overflow: hidden; }
 
   .topbar {
-    flex: 0 0 auto; padding: 10px 14px; background: rgba(17,17,17,0.85);
+    flex: 0 0 auto; padding: 10px 14px;
+    background: rgba(17,17,17,0.9);
     backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
-    border-bottom: 1px solid #222; position: relative; z-index: 4;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    position: relative; z-index: 4;
   }
   .topbar button, .topbar a.btn {
     background: #222; color: #fff; border: 1px solid #333;
@@ -28,22 +30,19 @@
   .topbar label { font-size: 13px; color: #aaa; display: flex; align-items: center; gap: 6px; }
   .topbar input[type=range] { width: 110px; }
   .topbar .spacer { flex: 1; }
-  .topbar .hint { font-size: 12px; color: #666; }
+  .topbar .hint { font-size: 12px; color: #888; }
   .topbar .val { color: #fff; min-width: 28px; text-align: right; font-variant-numeric: tabular-nums; }
 
   .stage {
-    flex: 1 1 auto; position: relative; overflow: hidden; background: #000;
+    flex: 1 1 auto; position: relative; overflow: hidden;
+    background: transparent;
   }
-  .stage video {
-    position: absolute; inset: 0; width: 100%; height: 100%;
-    object-fit: cover; transform: scaleX(-1); z-index: 0; background: #000;
-  }
-  .stage.no-mirror video { transform: none; }
+  .stage.mirror .scroller-inner { transform: scaleX(-1); }
 
   .guide {
     position: absolute; left: 0; right: 0; top: 18%;
     border-top: 2px solid rgba(200,16,46,0.7);
-    pointer-events: none; z-index: 3;
+    pointer-events: none; z-index: 2;
   }
   .guide::before, .guide::after {
     content: ''; position: absolute; top: -7px;
@@ -56,13 +55,12 @@
   .scroller {
     position: absolute; left: 0; right: 0; top: 100%;
     padding: 0 8vw 80vh 8vw; will-change: transform;
-    z-index: 2;
   }
   .scroller-inner { opacity: 0.5; }
   .scroller p {
     font-size: 56px; line-height: 1.4; font-weight: 700;
     margin: 0 0 0.9em 0; letter-spacing: 0.005em;
-    text-shadow: 0 2px 6px rgba(0,0,0,0.7);
+    text-shadow: 0 2px 8px rgba(0,0,0,0.85), 0 0 2px rgba(0,0,0,0.85);
   }
   .scroller p.cue {
     color: #c8102e; font-size: 24px; font-weight: 600;
@@ -89,18 +87,6 @@
     font-family: inherit;
   }
   .editor button.primary { background: #c8102e; border-color: #c8102e; }
-
-  .err {
-    position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-    background: rgba(0,0,0,0.85); padding: 20px 26px; border-radius: 10px;
-    border: 1px solid #333; z-index: 4; max-width: 480px; text-align: center;
-    display: none;
-  }
-  .err.show { display: block; }
-  .err h3 { margin: 0 0 8px 0; color: #ff6b6b; }
-  .err p { margin: 0 0 12px 0; color: #ccc; font-size: 14px; line-height: 1.5; }
-  .err button { background: #c8102e; color: #fff; border: none; padding: 8px 16px;
-    border-radius: 6px; cursor: pointer; font-size: 14px; }
 </style>
 </head>
 <body>
@@ -111,8 +97,7 @@
   <label>Speed <input id="speed" type="range" min="20" max="300" value="80" /> <span class="val" id="speedVal">80</span></label>
   <label>Size <input id="size" type="range" min="28" max="120" value="56" /> <span class="val" id="sizeVal">56</span></label>
   <label>See-through <input id="opacity" type="range" min="20" max="100" value="50" /> <span class="val" id="opacityVal">50%</span></label>
-  <button id="camToggle">Camera: …</button>
-  <button id="mirror">Mirror: on</button>
+  <button id="mirror">Mirror: off</button>
   <button id="edit">Edit script</button>
   <button id="reset" title="Reset to the Magic Mango welcome script">Reset</button>
   <button id="fullscreen">Fullscreen</button>
@@ -122,15 +107,9 @@
 </div>
 
 <div class="stage" id="stage">
-  <video id="cam" autoplay playsinline muted></video>
   <div class="guide"></div>
   <div class="scroller" id="scroller">
     <div class="scroller-inner" id="scrollerInner"></div>
-  </div>
-  <div class="err" id="err">
-    <h3>Camera blocked</h3>
-    <p id="errMsg">The browser couldn't access your webcam. Check the camera permission for this site, then click below to try again.</p>
-    <button id="retryCam">Try again</button>
   </div>
 </div>
 
@@ -164,29 +143,23 @@ const sizeSlider = document.getElementById('size');
 const sizeVal = document.getElementById('sizeVal');
 const opacitySlider = document.getElementById('opacity');
 const opacityVal = document.getElementById('opacityVal');
-const camBtn = document.getElementById('camToggle');
 const mirrorBtn = document.getElementById('mirror');
 const editBtn = document.getElementById('edit');
 const resetBtn = document.getElementById('reset');
 const fsBtn = document.getElementById('fullscreen');
-const cam = document.getElementById('cam');
-const errBox = document.getElementById('err');
-const errMsg = document.getElementById('errMsg');
-const retryBtn = document.getElementById('retryCam');
 const editor = document.getElementById('editor');
 const scriptArea = document.getElementById('script');
 const saveBtn = document.getElementById('saveScript');
 const cancelBtn = document.getElementById('cancelEdit');
 
 let y = 0, playing = false, lastT = 0, pxPerSec = 80;
-let stream = null;
 
 function applySize(px) {
   document.querySelectorAll('.scroller p:not(.cue)').forEach(p => p.style.fontSize = px + 'px');
 }
 
 function loadScript(text) {
-  sessionStorage.setItem('tpc_script', text);
+  sessionStorage.setItem('tpo_script', text);
   scrollerInner.innerHTML = '';
   const blocks = text.split(/\n\n+/);
   for (const block of blocks) {
@@ -229,63 +202,36 @@ function updatePlayBtn() {
   playBtn.textContent = playing ? '⏸ Pause' : '▶ Play';
 }
 
-async function startCam() {
-  errBox.classList.remove('show');
-  camBtn.textContent = 'Camera: …';
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' }, audio: false });
-    cam.srcObject = stream;
-    camBtn.textContent = 'Camera: on';
-  } catch (err) {
-    camBtn.textContent = 'Camera: off';
-    errMsg.textContent = 'Couldn\'t access your webcam (' + err.name + '). Check the camera permission for this page in your browser, then click below to retry.';
-    errBox.classList.add('show');
-  }
-}
-
-function stopCam() {
-  if (stream) {
-    stream.getTracks().forEach(t => t.stop());
-    stream = null;
-    cam.srcObject = null;
-  }
-  camBtn.textContent = 'Camera: off';
-}
-
 playBtn.addEventListener('click', () => { playing = !playing; updatePlayBtn(); });
 restartBtn.addEventListener('click', reset);
 
 speedSlider.addEventListener('input', () => {
   pxPerSec = +speedSlider.value;
   speedVal.textContent = pxPerSec;
-  localStorage.setItem('tpc_speed', pxPerSec);
+  localStorage.setItem('tpo_speed', pxPerSec);
 });
 sizeSlider.addEventListener('input', () => {
   applySize(sizeSlider.value);
   sizeVal.textContent = sizeSlider.value;
-  localStorage.setItem('tpc_size', sizeSlider.value);
+  localStorage.setItem('tpo_size', sizeSlider.value);
 });
 opacitySlider.addEventListener('input', () => {
   const v = +opacitySlider.value;
+  // Stage applies the opacity so guide line stays solid; fall back if mirrored
   scrollerInner.style.opacity = v / 100;
   opacityVal.textContent = v + '%';
-  localStorage.setItem('tpc_opacity', v);
+  localStorage.setItem('tpo_opacity', v);
 });
-
-camBtn.addEventListener('click', () => {
-  if (stream) stopCam(); else startCam();
-});
-retryBtn.addEventListener('click', startCam);
 
 mirrorBtn.addEventListener('click', () => {
-  stage.classList.toggle('no-mirror');
-  const mirrored = !stage.classList.contains('no-mirror');
-  mirrorBtn.textContent = 'Mirror: ' + (mirrored ? 'on' : 'off');
-  localStorage.setItem('tpc_mirror', mirrored ? '1' : '0');
+  stage.classList.toggle('mirror');
+  const on = stage.classList.contains('mirror');
+  mirrorBtn.textContent = 'Mirror: ' + (on ? 'on' : 'off');
+  localStorage.setItem('tpo_mirror', on ? '1' : '0');
 });
 
 editBtn.addEventListener('click', () => {
-  scriptArea.value = sessionStorage.getItem('tpc_script') || DEFAULT_SCRIPT;
+  scriptArea.value = sessionStorage.getItem('tpo_script') || DEFAULT_SCRIPT;
   editor.classList.add('open');
   scriptArea.focus();
 });
@@ -295,8 +241,8 @@ saveBtn.addEventListener('click', () => {
 });
 cancelBtn.addEventListener('click', () => editor.classList.remove('open'));
 resetBtn.addEventListener('click', () => {
-  if (!confirm('Reset to the Magic Mango welcome script? Your current script in this browser will be lost.')) return;
-  sessionStorage.removeItem('tpc_script');
+  if (!confirm('Reset to the Magic Mango welcome script? Your current script in this tab will be lost.')) return;
+  sessionStorage.removeItem('tpo_script');
   loadScript(DEFAULT_SCRIPT);
 });
 
@@ -316,29 +262,21 @@ document.addEventListener('keydown', (e) => {
 });
 
 // init
-const savedScript  = sessionStorage.getItem('tpc_script')  || DEFAULT_SCRIPT;
-const savedSpeed   = +(localStorage.getItem('tpc_speed') || 80);
-const savedSize    = +(localStorage.getItem('tpc_size')  || 56);
-const savedOpacity = +(localStorage.getItem('tpc_opacity') || 50);
-const savedMirror  = localStorage.getItem('tpc_mirror');
+const savedScript  = sessionStorage.getItem('tpo_script') || DEFAULT_SCRIPT;
+const savedSpeed   = +(localStorage.getItem('tpo_speed')   || 80);
+const savedSize    = +(localStorage.getItem('tpo_size')    || 56);
+const savedOpacity = +(localStorage.getItem('tpo_opacity') || 50);
+const savedMirror  = localStorage.getItem('tpo_mirror') === '1';
 
-speedSlider.value = savedSpeed; pxPerSec = savedSpeed; speedVal.textContent = savedSpeed;
-sizeSlider.value  = savedSize;  sizeVal.textContent   = savedSize;
+speedSlider.value   = savedSpeed; pxPerSec = savedSpeed; speedVal.textContent = savedSpeed;
+sizeSlider.value    = savedSize;  sizeVal.textContent   = savedSize;
 opacitySlider.value = savedOpacity;
 scrollerInner.style.opacity = savedOpacity / 100;
 opacityVal.textContent = savedOpacity + '%';
-
-// mirror defaults to on (selfie view) unless user has explicitly turned it off
-if (savedMirror === '0') {
-  stage.classList.add('no-mirror');
-  mirrorBtn.textContent = 'Mirror: off';
-} else {
-  mirrorBtn.textContent = 'Mirror: on';
-}
+if (savedMirror) { stage.classList.add('mirror'); mirrorBtn.textContent = 'Mirror: on'; }
 
 loadScript(savedScript);
 requestAnimationFrame(tick);
-startCam();
 </script>
 
 </body>
