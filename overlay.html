@@ -56,7 +56,6 @@
     position: absolute; left: 0; right: 0; top: 100%;
     padding: 0 8vw 80vh 8vw; will-change: transform;
   }
-  .scroller-inner { opacity: 0.5; }
   .scroller p {
     font-size: 56px; line-height: 1.4; font-weight: 700;
     margin: 0 0 0.9em 0; letter-spacing: 0.005em;
@@ -96,7 +95,6 @@
   <button id="restart">⟲ Restart</button>
   <label>Speed <input id="speed" type="range" min="20" max="300" value="80" /> <span class="val" id="speedVal">80</span></label>
   <label>Size <input id="size" type="range" min="28" max="120" value="56" /> <span class="val" id="sizeVal">56</span></label>
-  <label>See-through <input id="opacity" type="range" min="20" max="100" value="50" /> <span class="val" id="opacityVal">50%</span></label>
   <button id="mirror">Mirror: off</button>
   <button id="edit">Edit script</button>
   <button id="reset" title="Reset to the Magic Mango welcome script">Reset</button>
@@ -141,8 +139,6 @@ const speedSlider = document.getElementById('speed');
 const speedVal = document.getElementById('speedVal');
 const sizeSlider = document.getElementById('size');
 const sizeVal = document.getElementById('sizeVal');
-const opacitySlider = document.getElementById('opacity');
-const opacityVal = document.getElementById('opacityVal');
 const mirrorBtn = document.getElementById('mirror');
 const editBtn = document.getElementById('edit');
 const resetBtn = document.getElementById('reset');
@@ -215,14 +211,6 @@ sizeSlider.addEventListener('input', () => {
   sizeVal.textContent = sizeSlider.value;
   localStorage.setItem('tpo_size', sizeSlider.value);
 });
-opacitySlider.addEventListener('input', () => {
-  const v = +opacitySlider.value;
-  // Stage applies the opacity so guide line stays solid; fall back if mirrored
-  scrollerInner.style.opacity = v / 100;
-  opacityVal.textContent = v + '%';
-  localStorage.setItem('tpo_opacity', v);
-});
-
 mirrorBtn.addEventListener('click', () => {
   stage.classList.toggle('mirror');
   const on = stage.classList.contains('mirror');
@@ -263,16 +251,12 @@ document.addEventListener('keydown', (e) => {
 
 // init
 const savedScript  = sessionStorage.getItem('tpo_script') || DEFAULT_SCRIPT;
-const savedSpeed   = +(localStorage.getItem('tpo_speed')   || 80);
-const savedSize    = +(localStorage.getItem('tpo_size')    || 56);
-const savedOpacity = +(localStorage.getItem('tpo_opacity') || 50);
-const savedMirror  = localStorage.getItem('tpo_mirror') === '1';
+const savedSpeed  = +(localStorage.getItem('tpo_speed') || 80);
+const savedSize   = +(localStorage.getItem('tpo_size')  || 56);
+const savedMirror = localStorage.getItem('tpo_mirror') === '1';
 
-speedSlider.value   = savedSpeed; pxPerSec = savedSpeed; speedVal.textContent = savedSpeed;
-sizeSlider.value    = savedSize;  sizeVal.textContent   = savedSize;
-opacitySlider.value = savedOpacity;
-scrollerInner.style.opacity = savedOpacity / 100;
-opacityVal.textContent = savedOpacity + '%';
+speedSlider.value = savedSpeed; pxPerSec = savedSpeed; speedVal.textContent = savedSpeed;
+sizeSlider.value  = savedSize;  sizeVal.textContent   = savedSize;
 if (savedMirror) { stage.classList.add('mirror'); mirrorBtn.textContent = 'Mirror: on'; }
 
 loadScript(savedScript);
