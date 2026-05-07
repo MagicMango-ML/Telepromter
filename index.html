@@ -16,12 +16,12 @@
     display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
     border-bottom: 1px solid #222;
   }
-  .topbar button {
+  .topbar button, .topbar a.btn {
     background: #222; color: #fff; border: 1px solid #333;
     padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 14px;
-    font-family: inherit;
+    font-family: inherit; text-decoration: none; display: inline-block;
   }
-  .topbar button:hover { background: #2a2a2a; }
+  .topbar button:hover, .topbar a.btn:hover { background: #2a2a2a; }
   .topbar button.primary { background: #c8102e; border-color: #c8102e; }
   .topbar button.primary:hover { background: #e01233; }
   .topbar label { font-size: 13px; color: #aaa; display: flex; align-items: center; gap: 6px; }
@@ -95,6 +95,7 @@
   <button id="edit">Edit script</button>
   <button id="reset" title="Reset to the Magic Mango welcome script">Reset</button>
   <button id="fullscreen">Fullscreen</button>
+  <a class="btn" href="cam.html" title="Switch to camera mode">Camera mode →</a>
   <div class="spacer"></div>
   <span class="hint">Space play · ↑↓ speed · ← restart · M mirror · E edit · F fullscreen</span>
 </div>
