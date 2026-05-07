@@ -82,9 +82,44 @@
     font-family: inherit;
   }
   .editor button.primary { background: #c8102e; border-color: #c8102e; }
+
+  .gate {
+    position: fixed; inset: 0; background: #000; z-index: 10;
+    display: none; align-items: center; justify-content: center; padding: 20px;
+  }
+  .gate.show { display: flex; }
+  .gate .card {
+    background: #111; padding: 32px 36px; border-radius: 10px;
+    border: 1px solid #222; max-width: 380px; width: 100%; text-align: center;
+  }
+  .gate h1 { margin: 0 0 8px 0; font-size: 22px; color: #fff; font-weight: 600; }
+  .gate p.sub { margin: 0 0 20px 0; font-size: 13px; color: #888; }
+  .gate input[type=password] {
+    width: 100%; background: #000; color: #fff; border: 1px solid #333;
+    border-radius: 6px; padding: 10px 12px; font-size: 15px; font-family: inherit;
+    margin-bottom: 10px;
+  }
+  .gate input[type=password]:focus { outline: none; border-color: #c8102e; }
+  .gate button {
+    width: 100%; background: #c8102e; color: #fff; border: 0;
+    padding: 10px; border-radius: 6px; cursor: pointer; font-size: 15px;
+    font-family: inherit; font-weight: 600;
+  }
+  .gate button:hover { background: #e01233; }
+  .gate .err { margin: 10px 0 0 0; color: #ff6b6b; font-size: 13px; min-height: 1em; }
 </style>
 </head>
 <body>
+
+<div id="gate" class="gate show">
+  <form class="card" id="gateForm">
+    <h1>Magic Mango Telepromter</h1>
+    <p class="sub">Enter password to continue</p>
+    <input type="password" id="gatePwd" autocomplete="current-password" autofocus />
+    <button type="submit">Unlock</button>
+    <p class="err" id="gateErr"></p>
+  </form>
+</div>
 
 <div class="topbar">
   <button id="play" class="primary">▶ Play</button>
@@ -117,6 +152,38 @@
 </div>
 
 <script>
+const PASSWORD_HASH = '4837ad01f2536b8071e06b0f424966ce8656d729e6a2f1c3ff7c7ddb1feaa242';
+
+async function sha256Hex(s) {
+  const buf = new TextEncoder().encode(s);
+  const hash = await crypto.subtle.digest('SHA-256', buf);
+  return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+const gate = document.getElementById('gate');
+const gateForm = document.getElementById('gateForm');
+const gatePwd = document.getElementById('gatePwd');
+const gateErr = document.getElementById('gateErr');
+
+function unlock() {
+  gate.classList.remove('show');
+  sessionStorage.setItem('tp_auth', '1');
+}
+
+if (sessionStorage.getItem('tp_auth') === '1') unlock();
+
+gateForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  gateErr.textContent = '';
+  const h = await sha256Hex(gatePwd.value);
+  if (h === PASSWORD_HASH) {
+    unlock();
+  } else {
+    gateErr.textContent = 'Wrong password';
+    gatePwd.select();
+  }
+});
+
 const DEFAULT_SCRIPT = `[Welcome]
 
 This is the Magic Mango Telepromter.
