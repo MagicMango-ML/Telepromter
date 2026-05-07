@@ -93,6 +93,7 @@
   <label>Size <input id="size" type="range" min="28" max="120" value="56" /> <span class="val" id="sizeVal">56</span></label>
   <button id="mirror">Mirror: off</button>
   <button id="edit">Edit script</button>
+  <button id="reset" title="Reset to the Magic Mango welcome script">Reset</button>
   <button id="fullscreen">Fullscreen</button>
   <div class="spacer"></div>
   <span class="hint">Space play · ↑↓ speed · ← restart · M mirror · E edit · F fullscreen</span>
@@ -135,6 +136,7 @@ const sizeSlider = document.getElementById('size');
 const sizeVal = document.getElementById('sizeVal');
 const mirrorBtn = document.getElementById('mirror');
 const editBtn = document.getElementById('edit');
+const resetBtn = document.getElementById('reset');
 const fsBtn = document.getElementById('fullscreen');
 const editor = document.getElementById('editor');
 const scriptArea = document.getElementById('script');
@@ -226,6 +228,12 @@ saveBtn.addEventListener('click', () => {
   editor.classList.remove('open');
 });
 cancelBtn.addEventListener('click', () => editor.classList.remove('open'));
+
+resetBtn.addEventListener('click', () => {
+  if (!confirm('Reset to the Magic Mango welcome script? Your current script in this browser will be lost.')) return;
+  localStorage.removeItem('tp_script');
+  loadScript(DEFAULT_SCRIPT);
+});
 
 fsBtn.addEventListener('click', () => {
   if (!document.fullscreenElement) document.documentElement.requestFullscreen();
