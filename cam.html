@@ -140,7 +140,7 @@
   <div class="row">
     <button id="saveScript" class="primary">Save &amp; close</button>
     <button id="cancelEdit">Cancel</button>
-    <span class="hint">Saved automatically to this browser</span>
+    <span class="hint">Kept only for this tab — closing the tab clears it</span>
   </div>
 </div>
 
@@ -186,7 +186,7 @@ function applySize(px) {
 }
 
 function loadScript(text) {
-  localStorage.setItem('tpc_script', text);
+  sessionStorage.setItem('tpc_script', text);
   scrollerInner.innerHTML = '';
   const blocks = text.split(/\n\n+/);
   for (const block of blocks) {
@@ -285,7 +285,7 @@ mirrorBtn.addEventListener('click', () => {
 });
 
 editBtn.addEventListener('click', () => {
-  scriptArea.value = localStorage.getItem('tpc_script') || DEFAULT_SCRIPT;
+  scriptArea.value = sessionStorage.getItem('tpc_script') || DEFAULT_SCRIPT;
   editor.classList.add('open');
   scriptArea.focus();
 });
@@ -296,7 +296,7 @@ saveBtn.addEventListener('click', () => {
 cancelBtn.addEventListener('click', () => editor.classList.remove('open'));
 resetBtn.addEventListener('click', () => {
   if (!confirm('Reset to the Magic Mango welcome script? Your current script in this browser will be lost.')) return;
-  localStorage.removeItem('tpc_script');
+  sessionStorage.removeItem('tpc_script');
   loadScript(DEFAULT_SCRIPT);
 });
 
@@ -316,7 +316,7 @@ document.addEventListener('keydown', (e) => {
 });
 
 // init
-const savedScript  = localStorage.getItem('tpc_script')  || DEFAULT_SCRIPT;
+const savedScript  = sessionStorage.getItem('tpc_script')  || DEFAULT_SCRIPT;
 const savedSpeed   = +(localStorage.getItem('tpc_speed') || 80);
 const savedSize    = +(localStorage.getItem('tpc_size')  || 56);
 const savedOpacity = +(localStorage.getItem('tpc_opacity') || 50);
