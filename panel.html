@@ -3,28 +3,32 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Teleprompter · See-through</title>
+<title>Teleprompter · Translucent</title>
 <style>
   :root { color-scheme: dark; }
   * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; background: transparent; color: #fff;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
-  body { display: flex; flex-direction: column; overflow: hidden; }
+  html { height: 100%; background: transparent; }
+  body { margin: 0; height: 100%; color: #fff;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    background: rgba(8, 10, 14, 0.55);
+    backdrop-filter: blur(18px); -webkit-backdrop-filter: blur(18px);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
 
   .topbar {
     flex: 0 0 auto; padding: 10px 14px;
-    background: rgba(17,17,17,0.9);
+    background: rgba(20,20,24,0.6);
     backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
     display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
     border-bottom: 1px solid rgba(255,255,255,0.08);
     position: relative; z-index: 4;
   }
   .topbar button, .topbar a.btn {
-    background: #222; color: #fff; border: 1px solid #333;
+    background: rgba(40,40,46,0.7); color: #fff; border: 1px solid rgba(255,255,255,0.12);
     padding: 7px 14px; border-radius: 6px; cursor: pointer; font-size: 14px;
     font-family: inherit; text-decoration: none; display: inline-block;
   }
-  .topbar button:hover, .topbar a.btn:hover { background: #2a2a2a; }
+  .topbar button:hover, .topbar a.btn:hover { background: rgba(60,60,68,0.7); }
   .topbar button.primary { background: #c8102e; border-color: #c8102e; }
   .topbar button.primary:hover { background: #e01233; }
   .topbar label { font-size: 13px; color: #aaa; display: flex; align-items: center; gap: 6px; }
@@ -95,12 +99,13 @@
   <button id="restart">⟲ Restart</button>
   <label>Speed <input id="speed" type="range" min="20" max="300" value="80" /> <span class="val" id="speedVal">80</span></label>
   <label>Size <input id="size" type="range" min="28" max="120" value="56" /> <span class="val" id="sizeVal">56</span></label>
+  <label>Backdrop <input id="bg" type="range" min="20" max="100" value="55" /> <span class="val" id="bgVal">55%</span></label>
   <button id="mirror">Mirror: off</button>
   <button id="edit">Edit script</button>
   <button id="reset" title="Reset to the Magic Mango welcome script">Reset</button>
   <button id="fullscreen">Fullscreen</button>
   <a class="btn" href="./" title="Standard mode (solid black)">Standard →</a>
-  <a class="btn" href="panel.html" title="Translucent dark panel">Translucent →</a>
+  <a class="btn" href="overlay.html" title="See-through (for OBS)">See-through →</a>
   <div class="spacer"></div>
   <span class="hint">Space play · ↑↓ speed · ← restart · F fullscreen · E edit</span>
 </div>
@@ -140,6 +145,8 @@ const speedSlider = document.getElementById('speed');
 const speedVal = document.getElementById('speedVal');
 const sizeSlider = document.getElementById('size');
 const sizeVal = document.getElementById('sizeVal');
+const bgSlider = document.getElementById('bg');
+const bgVal = document.getElementById('bgVal');
 const mirrorBtn = document.getElementById('mirror');
 const editBtn = document.getElementById('edit');
 const resetBtn = document.getElementById('reset');
@@ -155,8 +162,12 @@ function applySize(px) {
   document.querySelectorAll('.scroller p:not(.cue)').forEach(p => p.style.fontSize = px + 'px');
 }
 
+function applyBackdrop(pct) {
+  document.body.style.background = `rgba(8, 10, 14, ${pct / 100})`;
+}
+
 function loadScript(text) {
-  sessionStorage.setItem('tpo_script', text);
+  sessionStorage.setItem('tpp_script', text);
   scrollerInner.innerHTML = '';
   const blocks = text.split(/\n\n+/);
   for (const block of blocks) {
@@ -205,22 +216,29 @@ restartBtn.addEventListener('click', reset);
 speedSlider.addEventListener('input', () => {
   pxPerSec = +speedSlider.value;
   speedVal.textContent = pxPerSec;
-  localStorage.setItem('tpo_speed', pxPerSec);
+  localStorage.setItem('tpp_speed', pxPerSec);
 });
 sizeSlider.addEventListener('input', () => {
   applySize(sizeSlider.value);
   sizeVal.textContent = sizeSlider.value;
-  localStorage.setItem('tpo_size', sizeSlider.value);
+  localStorage.setItem('tpp_size', sizeSlider.value);
 });
+bgSlider.addEventListener('input', () => {
+  const v = +bgSlider.value;
+  applyBackdrop(v);
+  bgVal.textContent = v + '%';
+  localStorage.setItem('tpp_bg', v);
+});
+
 mirrorBtn.addEventListener('click', () => {
   stage.classList.toggle('mirror');
   const on = stage.classList.contains('mirror');
   mirrorBtn.textContent = 'Mirror: ' + (on ? 'on' : 'off');
-  localStorage.setItem('tpo_mirror', on ? '1' : '0');
+  localStorage.setItem('tpp_mirror', on ? '1' : '0');
 });
 
 editBtn.addEventListener('click', () => {
-  scriptArea.value = sessionStorage.getItem('tpo_script') || DEFAULT_SCRIPT;
+  scriptArea.value = sessionStorage.getItem('tpp_script') || DEFAULT_SCRIPT;
   editor.classList.add('open');
   scriptArea.focus();
 });
@@ -231,7 +249,7 @@ saveBtn.addEventListener('click', () => {
 cancelBtn.addEventListener('click', () => editor.classList.remove('open'));
 resetBtn.addEventListener('click', () => {
   if (!confirm('Reset to the Magic Mango welcome script? Your current script in this tab will be lost.')) return;
-  sessionStorage.removeItem('tpo_script');
+  sessionStorage.removeItem('tpp_script');
   loadScript(DEFAULT_SCRIPT);
 });
 
@@ -251,13 +269,16 @@ document.addEventListener('keydown', (e) => {
 });
 
 // init
-const savedScript  = sessionStorage.getItem('tpo_script') || DEFAULT_SCRIPT;
-const savedSpeed  = +(localStorage.getItem('tpo_speed') || 80);
-const savedSize   = +(localStorage.getItem('tpo_size')  || 56);
-const savedMirror = localStorage.getItem('tpo_mirror') === '1';
+const savedScript = sessionStorage.getItem('tpp_script') || DEFAULT_SCRIPT;
+const savedSpeed  = +(localStorage.getItem('tpp_speed') || 80);
+const savedSize   = +(localStorage.getItem('tpp_size')  || 56);
+const savedBg     = +(localStorage.getItem('tpp_bg')    || 55);
+const savedMirror = localStorage.getItem('tpp_mirror') === '1';
 
 speedSlider.value = savedSpeed; pxPerSec = savedSpeed; speedVal.textContent = savedSpeed;
 sizeSlider.value  = savedSize;  sizeVal.textContent   = savedSize;
+bgSlider.value    = savedBg;    bgVal.textContent     = savedBg + '%';
+applyBackdrop(savedBg);
 if (savedMirror) { stage.classList.add('mirror'); mirrorBtn.textContent = 'Mirror: on'; }
 
 loadScript(savedScript);
